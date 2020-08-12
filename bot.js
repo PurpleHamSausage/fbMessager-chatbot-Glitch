@@ -68,7 +68,17 @@ app.post('/webhook', function (req, res) {
     res.sendStatus(200);
   }
 });
-
+let type = {
+  defalut : 0,
+  askInfo : 1,
+}
+let userInfo = {
+  name : null,
+  age : -1,
+  email : null,
+}
+let currentType = type.default;
+let currentUserInfo = userInfo;
 // Incoming events handling
 async function receivedMessage(event) {
   var senderID = event.sender.id;
@@ -82,43 +92,79 @@ async function receivedMessage(event) {
 
   var messageId = message.mid;
 
-  var messageText = message.text;
+  var msg = message.text;
   var messageAttachments = message.attachments;
-  if (messageText) {
+  if (msg) {
     
     markAsSeen(senderID);
     // If we receive a text message, check to see if it matches a keyword
     // and send back the template example. Otherwise, just echo the text we received.
-    if(messageText.includes('generic')){
+    if(currentType == type.default){
+          if(msg.includes('generic')){
         sendGenericMessage(senderID);
+
+      }else if(msg.includes('rumu')){
+          sendTextMessage(senderID , '喂，如牧創新你好');
+
+      }else if(msg.includes('PFTween')){
+          typing(senderID,true);
+          await delayTime(2);
+          sendTextMessage(senderID, 'https://github.com/pofulu/sparkar-pftween');
+
+      }else if(nonCaps(msg, 'video')){
+          sendVideo(senderID, 'https://i.imgur.com/YcxVeNy.mp4');
+
+      }else if(nonCaps(msg, '大叫')){
+          sendTextMessage(senderID, 'YOOOOOO');
+
+      }else if(nonCaps(msg, 'image')){
+          sendImage(senderID, 'https://i.imgur.com/atCLtms.jpeg');
+
+      }else if(nonCaps(msg ,'test')){
+        sendTextMessage(senderID, 'Start Testing');
+        currentUserInfo = userInfo;
+        currentType = type.askInfo;
+        await delayTime(.5);
+        sendTextMessage(senderID, 'Enter anything');
+      }
+      else{
+          typing(senderID,true);
+          await delayTime(2);
+          sendTextMessage(senderID, msg);
       
-    }else if(messageText.includes('rumu')){
-        sendTextMessage(senderID , '喂，如牧創新你好');
-      
-    }else if(messageText.includes('PFTween')){
-        typing(senderID,true);
-        await delayTime(2);
-        sendTextMessage(senderID, 'https://github.com/pofulu/sparkar-pftween');
-      
-    }else if(nonCaps(messageText, 'video')){
-        sendVideo(senderID, 'https://i.imgur.com/YcxVeNy.mp4');
-      
-    }else if(nonCaps(messageText, '大叫')){
-        sendTextMessage(senderID, 'YOOOOOO');
-      
-    }else if(nonCaps(messageText, 'image')){
-        sendImage(senderID, 'https://i.imgur.com/atCLtms.jpeg');
-      
-    }else{
-        typing(senderID,true);
-        await delayTime(2);
-        sendTextMessage(senderID, messageText);
-      
+      }
+    }else if(currentType == type.askInfo){
+      if(currentUserInfo.name == null){
+        sendTextMessage(senderID, 'enter your name');
+        currentUserInfo.name = 'Unknown';
+      }else if(currentUserInfo.age == -1){
+        currentUserInfo.name = msg;
+        sendTextMessage(senderID, 'enter your age');
+        currentUserInfo.age = -2;
+      }else if(currentUserInfo.email == null){
+        // if(type(parseInt(msg)) === 'number'){
+          currentUserInfo.age = parseInt(msg);
+        // }
+      // else{
+      //     sendTextMessage(senderID, 'Not effective data, please enter an integer');
+      //     currentUserInfo.age = -1;
+      //   }
+
+        sendTextMessage(senderID, 'enter your email address');
+        currentUserInfo.email = 'Unknown Email';
+      }else{
+        currentUserInfo.email = msg;
+          sendTextMessage(senderID, 'your name: '+ currentUserInfo.name +'\n your age: '+ currentUserInfo.age +'\n your email: '+ currentUserInfo.email.toString());
+          currentType = type.default;
+          delayTime(1.5);
+          sendTextMessage(senderID, 'Test End')
+      }
     }
+
     
   }else if (messageAttachments) {
     sendTextMessage(senderID, "Message with attachment received");
-}  
+} 
   
 }
 
