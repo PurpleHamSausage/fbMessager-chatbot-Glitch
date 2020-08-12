@@ -70,7 +70,7 @@ app.post('/webhook', function (req, res) {
 });
 
 // Incoming events handling
-function receivedMessage(event) {
+async function receivedMessage(event) {
   var senderID = event.sender.id;
   var recipientID = event.recipient.id;
   var timeOfMessage = event.timestamp;
@@ -85,24 +85,51 @@ function receivedMessage(event) {
   var messageText = message.text;
   var messageAttachments = message.attachments;
   if (messageText) {
+    
+    markAsSeen(senderID);
     // If we receive a text message, check to see if it matches a keyword
     // and send back the template example. Otherwise, just echo the text we received.
-    switch (messageText) {
-      case 'generic':
+    if(messageText.includes('generic')){
         sendGenericMessage(senderID);
-        break;
-      case 'rumu':
+      
+    }else if(messageText.includes('rumu')){
         sendTextMessage(senderID , '喂，如牧創新你好');
-        break;
-      case 'PFTween':
+      
+    }else if(messageText.includes('PFTween')){
+        typing(senderID,true);
+        await delayTime(2);
         sendTextMessage(senderID, 'https://github.com/pofulu/sparkar-pftween');
-        break;
-      default:
+      
+    }else if(nonCaps(messageText, 'video')){
+        sendVideo(senderID, 'https://i.imgur.com/YcxVeNy.mp4');
+      
+    }else if(nonCaps(messageText, '大叫')){
+        sendTextMessage(senderID, 'YOOOOOO');
+      
+    }else if(nonCaps(messageText, 'image')){
+        sendImage(senderID, 'https://i.imgur.com/atCLtms.jpeg');
+      
+    }else{
+        typing(senderID,true);
+        await delayTime(2);
         sendTextMessage(senderID, messageText);
+      
     }
+    
   }else if (messageAttachments) {
     sendTextMessage(senderID, "Message with attachment received");
 }  
+  
+}
+
+function markAsSeen(senderID){
+    var readMessage = {
+    "recipient":{
+      "id": senderID
+    },
+      "sender_action":"mark_seen"//已讀
+  };
+  callSendAPI(readMessage);
 }
 
 function receivedPostback(event) {
@@ -126,6 +153,15 @@ function receivedPostback(event) {
   }
 }
 
+function nonCaps(msg, text){//忽略大小寫
+  var _msg = msg.toLowerCase();
+  var _text = text.toLowerCase();
+  if(_msg.includes(_text)){
+    return true;
+  }
+  return false;
+}
+
 //////////////////////////
 // Sending helpers
 //////////////////////////
@@ -136,10 +172,79 @@ function sendTextMessage(recipientId, messageText) {
     },
     message: {
       text: messageText
-    }
+    },
   };
 
   callSendAPI(messageData);
+}
+
+function typing(senderID,active){
+  if(active){
+    var messageData = {
+      "recipient":{
+      "id": senderID
+    },
+      "sender_action":"typing_on"//正在輸入文字的效果，當輸入文字時或是二十秒後會自動停止
+  };
+  callSendAPI(messageData);
+
+  }
+  else{
+    var messageData = {
+      "recipient":{
+      "id": senderID
+    },
+      "sender_action":"typing_off"//手動停止
+  };
+  callSendAPI(messageData);
+
+  }
+}
+
+function sendImage(senderID, url){
+  var messageData = {
+    "recipient": {
+      "id": senderID
+    },
+    "message": {
+      "attachment": {
+        "type": "image",
+        "payload": {
+        "url": url, 
+        }
+      }
+    },
+  }
+  callSendAPI(messageData);
+
+}
+
+const sleep = delay => {
+  return new Promise(function(resolve) {
+    setTimeout(resolve, delay);
+  });
+};
+
+async function delayTime(sec = 1){//延遲
+      await sleep(sec * 1000);
+}
+
+function sendVideo(senderID, url){
+  var messageData = {
+    "recipient": {
+      "id": senderID
+    },
+    "message": {
+      "attachment": {
+        "type": "video",
+        "payload": {
+        "url": url, 
+        }
+      }
+    },
+  }
+  callSendAPI(messageData);
+
 }
 
 function sendGenericMessage(recipientId) {
